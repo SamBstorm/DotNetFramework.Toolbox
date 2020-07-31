@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ToolBox.ADO;
 
 namespace Conso.ADO
 {
@@ -17,104 +18,42 @@ namespace Conso.ADO
         {
             int result;
 
-            using(SqlConnection connection = new SqlConnection())
-            {
-                connection.ConnectionString = CONSTRING;
-                connection.Open();
-                if (connection.State != System.Data.ConnectionState.Open) throw new Exception("Impossible d'ouvrir la connection");
-                string sqlQuery = "SELECT COUNT(*) FROM Movie";
-                using(SqlCommand command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = sqlQuery;
-                    command.CommandType = System.Data.CommandType.Text;
-                    result = (int)command.ExecuteScalar();
-                }
-                //connection.Close();
-            }
+            Command com = new Command("SELECT COUNT(*) FROM Movie");
+            Connection con = new Connection(CONSTRING);
+            result = (int)con.ExecuteScalar(com);
 
             Console.WriteLine(result);
             Console.ReadLine();
 
-            using (SqlConnection connection = new SqlConnection()) 
-            {
-                connection.ConnectionString = CONSTRING;
-                connection.Open();
-                if (connection.State != System.Data.ConnectionState.Open) throw new Exception("Impossible d'ouvrir la connection");
-                string sqlQuery = "UPDATE Movie SET title = @title WHERE id = @id";
-                SqlParameter paramTitle = new SqlParameter();
-                paramTitle.ParameterName = "title";
-                paramTitle.Value = "Le monde de Némo";
-                SqlParameter paramId = new SqlParameter();
-                paramId.ParameterName = "id";
-                paramId.Value = 1;
-                using (SqlCommand command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = sqlQuery;
-                    command.CommandType = System.Data.CommandType.Text;
-                    command.Parameters.Add(paramTitle);
-                    command.Parameters.Add(paramId);
-                    Console.WriteLine( command.ExecuteNonQuery() );
-                }
-            }
+            com = new Command("UPDATE Movie SET title = @title WHERE id = @id");
+            com.AddParameter("title", "Le monde de Nemo");
+            com.AddParameter("id", 1);
+            Console.WriteLine(con.ExecuteNonQuery(com));
 
             Console.ReadLine();
 
             ArrayList arrayList = new ArrayList();
 
-            using (SqlConnection connection = new SqlConnection())
+            Connection.ConvertMethod<object> convert = (reader) => new
             {
-                connection.ConnectionString = CONSTRING;
-                connection.Open();
-                if (connection.State != System.Data.ConnectionState.Open) throw new Exception("Impossible d'ouvrir la connection");
-                string sqlQuery = "SELECT * FROM Movie";
-                using (SqlCommand command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = sqlQuery;
-                    command.CommandType = System.Data.CommandType.Text;
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var movie = new
-                            {
-                                Id = (int)reader["id"],
-                                Title = (string)reader["title"],
-                                Synopsis = (reader["synopsis"] == DBNull.Value)?null:(string)reader["synopsis"],
-                                ReleaseYear = (reader["release_year"] == DBNull.Value)?null:(Nullable<int>)reader["release_year"],
-                                PosterURI = (reader["poster_uri"] == DBNull.Value)?null:(string)reader["poster_uri"],
-                                CategoryId = (reader["category_id"] == DBNull.Value)?null:(int?)reader["category_id"]
-                            };
+                Id = (int)reader["id"],
+                Title = (string)reader["title"],
+                Synopsis = (reader["synopsis"] == DBNull.Value) ? null : (string)reader["synopsis"],
+                ReleaseYear = (reader["release_year"] == DBNull.Value) ? null : (Nullable<int>)reader["release_year"],
+                PosterURI = (reader["poster_uri"] == DBNull.Value) ? null : (string)reader["poster_uri"],
+                CategoryId = (reader["category_id"] == DBNull.Value) ? null : (int?)reader["category_id"]
+            };
 
-                            arrayList.Add(movie);
-                        }
-                    }
-                }
-
+            com = new Command("SELECT * FROM Movie");
+            var listOfMovies = con.ExecuteReader(com, convert);
+            foreach (object item in listOfMovies)
+            {
+                arrayList.Add(item);
             }
 
             Console.ReadLine();
 
-            DataTable movies = new DataTable();
-
-            using (SqlConnection connection = new SqlConnection())
-            {
-                connection.ConnectionString = CONSTRING;
-                connection.Open();
-                if (connection.State != System.Data.ConnectionState.Open) throw new Exception("Impossible d'ouvrir la connection");
-                string sqlQuery = "SELECT * FROM Movie";
-                using (SqlCommand command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = sqlQuery;
-                    command.CommandType = System.Data.CommandType.Text;
-                    SqlDataAdapter adapter = new SqlDataAdapter();
-                    adapter.SelectCommand = command;
-                    adapter.Fill(movies);
-                }
-            }
+            DataTable movies = con.GetDataTable(com);
 
             foreach (DataRow row in movies.Rows)
             {

@@ -49,5 +49,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ToolBox.ADO\ToolBox.ADO.csproj">
+      <Project>{b96715b4-96d0-41bd-9c50-22fb41f5c931}</Project>
+      <Name>ToolBox.ADO</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
