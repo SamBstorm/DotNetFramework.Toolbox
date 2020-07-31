@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -12,39 +13,45 @@ namespace ToolBox.ADO
     {
         private string _connectionString;
 
-        public delegate T ConvertMethod<T>(SqlDataReader reader); // Func<SqlDataReader,T>
+        private DbProviderFactory _factory;
 
-        public Connection(string connectionString)
+        public delegate T ConvertMethod<T>(IDataRecord reader); // Func<IDataRecord,T>
+
+        public Connection(string connectionString, string invariantName="System.Data.SqlClient")
         {
             _connectionString = connectionString;
+            _factory = DbProviderFactories.GetFactory(invariantName);
         }
 
-        private SqlConnection CreateConnection()
+        private DbConnection CreateConnection()
         {
-            SqlConnection connection = new SqlConnection();
+            DbConnection connection = _factory.CreateConnection();
             connection.ConnectionString = _connectionString;
             connection.Open();
             if (connection.State != System.Data.ConnectionState.Open) throw new Exception("Impossible d'ouvrir la connection.");
             return connection;
         }
 
-        private SqlCommand CreateCommand(SqlConnection connection, Command command)
+        private DbCommand CreateCommand(DbConnection connection, Command command)
         {
-            SqlCommand dbCommand = new SqlCommand();
-            dbCommand.Connection = connection;
+            DbCommand dbCommand = connection.CreateCommand();
             dbCommand.CommandText = command.SqlQuery;
             dbCommand.CommandType = (command.IsStoredProcedure) ? System.Data.CommandType.StoredProcedure : System.Data.CommandType.Text;
-            foreach (SqlParameter parameter in command.Parameters.Values)
+            foreach (Parameter parameter in command.Parameters.Values)
             {
-                dbCommand.Parameters.Add(parameter);
+                DbParameter dbParameter = _factory.CreateParameter();
+                dbParameter.ParameterName = parameter.ParameterName;
+                dbParameter.Value = parameter.Value;
+                dbParameter.Direction = parameter.Direction;
+                dbCommand.Parameters.Add(dbParameter);
             }
             return dbCommand;
         }
 
         public int ExecuteNonQuery(Command command) {
-            using(SqlConnection connection = CreateConnection())
+            using(DbConnection connection = CreateConnection())
             {
-                using (SqlCommand dbCommand = CreateCommand(connection, command))
+                using (DbCommand dbCommand = CreateCommand(connection, command))
                 {                    
                     return dbCommand.ExecuteNonQuery();
                 }
@@ -52,9 +59,9 @@ namespace ToolBox.ADO
         }
 
         public object ExecuteScalar(Command command) {
-            using(SqlConnection connection = CreateConnection())
+            using(DbConnection connection = CreateConnection())
             {
-                using(SqlCommand dbCommand = CreateCommand(connection, command))
+                using(DbCommand dbCommand = CreateCommand(connection, command))
                 {
                     return dbCommand.ExecuteScalar();
                 }
@@ -63,11 +70,11 @@ namespace ToolBox.ADO
         public DataTable GetDataTable(Command command)
         {
             DataTable table = new DataTable();
-            using (SqlConnection connection = CreateConnection())
+            using (DbConnection connection = CreateConnection())
             {
-                using (SqlCommand dbCommand = CreateCommand(connection, command))
+                using (DbCommand dbCommand = CreateCommand(connection, command))
                 {
-                    SqlDataAdapter adapter = new SqlDataAdapter();
+                    DbDataAdapter adapter = _factory.CreateDataAdapter();
                     adapter.SelectCommand = dbCommand;
                     adapter.Fill(table);
                 }
@@ -76,14 +83,14 @@ namespace ToolBox.ADO
         }
 
         
-        public IEnumerable<T> ExecuteReader<T>(Command command, ConvertMethod<T> convert) //ConvertMethod<T> est le même type que le délégué générique de Func<SqlDataReader,T>
+        public IEnumerable<T> ExecuteReader<T>(Command command, ConvertMethod<T> convert) //ConvertMethod<T> est le même type que le délégué générique de Func<IDataRecord,T>
         {
             //List<T> list = new List<T>();
-            using (SqlConnection connection = CreateConnection())
+            using (DbConnection connection = CreateConnection())
             {
-                using (SqlCommand dbCommand = CreateCommand(connection,command))
+                using (DbCommand dbCommand = CreateCommand(connection,command))
                 {
-                    using (SqlDataReader reader = dbCommand.ExecuteReader())
+                    using (DbDataReader reader = dbCommand.ExecuteReader())
                     {
                         while (reader.Read())
                         {

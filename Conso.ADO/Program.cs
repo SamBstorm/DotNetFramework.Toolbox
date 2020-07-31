@@ -19,7 +19,7 @@ namespace Conso.ADO
             int result;
 
             Command com = new Command("SELECT COUNT(*) FROM Movie");
-            Connection con = new Connection(CONSTRING);
+            Connection con = new Connection(CONSTRING,"System.Data.SqlClient");
             result = (int)con.ExecuteScalar(com);
 
             Console.WriteLine(result);
