@@ -20,7 +20,7 @@ namespace Conso.ADO
 
             Command com = new Command("SELECT COUNT(*) FROM Movie");
             Connection con = new Connection(CONSTRING,"System.Data.SqlClient");
-            result = (int)con.ExecuteScalar(com);
+            /*result = (int)con.ExecuteScalar(com);
 
             Console.WriteLine(result);
             Console.ReadLine();
@@ -60,6 +60,24 @@ namespace Conso.ADO
                 Console.WriteLine($"{row["id"]} : {row["title"]}");
             }
 
+            Console.ReadLine();
+            */int id=default;
+            string title=default;
+
+            com = new Command("SELECT @id = id , @film = title FROM Movie");
+
+            com.AddParameter("id", id, true);
+            com.AddParameter("film", title, true,256);
+            IEnumerable<string> titles = con.ExecuteReader(com, reader=>reader["title"].ToString());
+            id = (int)com.Parameters["id"].Value;
+            title = (string)com.Parameters["film"].Value;
+
+            Console.WriteLine($"{id} - {title}");
+
+            foreach (string t in titles)
+            {
+                Console.WriteLine(t);
+            }
             Console.ReadLine();
         }
     }

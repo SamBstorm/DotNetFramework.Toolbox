@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,29 +44,36 @@ namespace ToolBox.ADO
                 dbParameter.ParameterName = parameter.ParameterName;
                 dbParameter.Value = parameter.Value;
                 dbParameter.Direction = parameter.Direction;
+                dbParameter.Size = parameter.Size;
                 dbCommand.Parameters.Add(dbParameter);
             }
             return dbCommand;
         }
 
         public int ExecuteNonQuery(Command command) {
+            int result;
             using(DbConnection connection = CreateConnection())
             {
                 using (DbCommand dbCommand = CreateCommand(connection, command))
                 {                    
-                    return dbCommand.ExecuteNonQuery();
+                    result = dbCommand.ExecuteNonQuery();
+                    GetOutputParameterValue(dbCommand, command);
                 }
             }
+            return result;
         }
 
         public object ExecuteScalar(Command command) {
+            object result;
             using(DbConnection connection = CreateConnection())
             {
                 using(DbCommand dbCommand = CreateCommand(connection, command))
                 {
-                    return dbCommand.ExecuteScalar();
+                    result = dbCommand.ExecuteScalar();
+                    GetOutputParameterValue(dbCommand, command); 
                 }
             }
+            return result;
         }
         public DataTable GetDataTable(Command command)
         {
@@ -77,6 +85,7 @@ namespace ToolBox.ADO
                     DbDataAdapter adapter = _factory.CreateDataAdapter();
                     adapter.SelectCommand = dbCommand;
                     adapter.Fill(table);
+                    GetOutputParameterValue(dbCommand, command);
                 }
             }
             return table;
@@ -92,6 +101,7 @@ namespace ToolBox.ADO
                 {
                     using (DbDataReader reader = dbCommand.ExecuteReader())
                     {
+                        GetOutputParameterValue(dbCommand, command);
                         while (reader.Read())
                         {
                             yield return convert(reader);
@@ -101,6 +111,17 @@ namespace ToolBox.ADO
                 }
             }
             //return list;
+        }
+
+        private void GetOutputParameterValue(DbCommand dbCommand, Command command)
+        {
+            foreach (DbParameter p in dbCommand.Parameters)
+            {
+                if(p.Direction == ParameterDirection.Output)
+                {
+                    command.Parameters[p.ParameterName].Value = p.Value;
+                }
+            }
         }
     }
 }

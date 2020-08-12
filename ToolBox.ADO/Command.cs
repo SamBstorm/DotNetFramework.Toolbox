@@ -21,13 +21,14 @@ namespace ToolBox.ADO
             Parameters = new Dictionary<string, Parameter>();
         }
 
-        public void AddParameter(string parameterName, object value, bool isOutput = false)
+        public void AddParameter(string parameterName, object value, bool isOutput = false, int size = 0)
         {
             if (Parameters.TryGetValue(parameterName, out _)) throw new ArgumentException("Paramètre déjà présent.", nameof(parameterName));
             Parameter param = new Parameter();
             param.ParameterName = parameterName;
             param.Value = value;
             param.Direction = (isOutput) ? System.Data.ParameterDirection.Output : System.Data.ParameterDirection.Input;
+            param.Size = size;
             Parameters.Add(parameterName, param);
         }
     }
