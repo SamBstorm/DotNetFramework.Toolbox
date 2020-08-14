@@ -119,7 +119,7 @@ namespace ToolBox.ADO
             {
                 if(p.Direction == ParameterDirection.Output)
                 {
-                    command.Parameters[p.ParameterName].Value = p.Value;
+                    command.Parameters[p.ParameterName].Value = (p.Value == DBNull.Value)? null: p.Value;
                 }
             }
         }

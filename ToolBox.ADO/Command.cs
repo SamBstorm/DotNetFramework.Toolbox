@@ -26,7 +26,7 @@ namespace ToolBox.ADO
             if (Parameters.TryGetValue(parameterName, out _)) throw new ArgumentException("Paramètre déjà présent.", nameof(parameterName));
             Parameter param = new Parameter();
             param.ParameterName = parameterName;
-            param.Value = value;
+            param.Value = value ?? DBNull.Value;
             param.Direction = (isOutput) ? System.Data.ParameterDirection.Output : System.Data.ParameterDirection.Input;
             param.Size = size;
             Parameters.Add(parameterName, param);
